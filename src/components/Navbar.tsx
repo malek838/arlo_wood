@@ -9,7 +9,7 @@ import { useCartStore } from "@/lib/store";
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const totalItems = useCartStore((s) => s.totalItems());
+  const totalItems = useCartStore((s) => s.totalItems);
 
   const links = [
     { href: "/", label: "الرئيسية" },

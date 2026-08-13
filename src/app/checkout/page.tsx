@@ -16,7 +16,7 @@ export default function CheckoutPage() {
     phone: "",
     address: "",
     city: "",
-    paymentMethod: "vodafone_cash" as const,
+    paymentMethod: "vodafone_cash" as "vodafone_cash" | "instapay" | "fawry" | "visa" | "other",
     otherPayment: "",
     notes: "",
   });

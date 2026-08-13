@@ -20,7 +20,7 @@ export default function CustomOrderPage() {
     phone: "",
     address: "",
     city: "",
-    paymentMethod: "vodafone_cash" as const,
+    paymentMethod: "vodafone_cash" as "vodafone_cash" | "instapay" | "fawry" | "visa" | "other",
     otherPayment: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
