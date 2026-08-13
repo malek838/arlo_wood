@@ -2,14 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, Menu, X, TreePine } from "lucide-react";
-import { useState } from "react";
+import { ShoppingCart, Menu, X, TreePine, User, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/store";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
-  const totalItems = useCartStore((s) => s.totalItems);
+  const totalItems = useCartStore((s) => s.totalItems());
+
+  useEffect(() => {
+    const u = localStorage.getItem("arlo-user");
+    if (u) setUser(JSON.parse(u));
+  }, [pathname]);
+
+  const logout = () => {
+    localStorage.removeItem("arlo-user");
+    setUser(null);
+    window.location.href = "/";
+  };
 
   const links = [
     { href: "/", label: "الرئيسية" },
@@ -23,7 +35,6 @@ export default function Navbar() {
     <nav className="bg-[#3d2b1f] text-[#f5e6d3] sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-xl">
             <TreePine className="w-7 h-7 text-[#c4a574]" />
             <span>
@@ -31,7 +42,6 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-6">
             {links.map((link) => (
               <Link
@@ -46,16 +56,42 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Cart + Mobile menu */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {user?.isAdmin && (
+              <Link
+                href="/admin"
+                className="hidden sm:block text-sm bg-[#c4a574] text-[#3d2b1f] px-3 py-1.5 rounded-full font-medium hover:bg-[#b8956a] transition"
+              >
+                الأدمن
+              </Link>
+            )}
+
+            {user ? (
+              <button
+                onClick={logout}
+                className="p-2 hover:bg-[#5a4030] rounded-full transition"
+                title="تسجيل الخروج"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="p-2 hover:bg-[#5a4030] rounded-full transition"
+                title="تسجيل الدخول"
+              >
+                <User className="w-5 h-5" />
+              </Link>
+            )}
+
             <Link
               href="/cart"
               className="relative p-2 hover:bg-[#5a4030] rounded-full transition"
             >
               <ShoppingCart className="w-6 h-6" />
-              {totalItems() > 0 && (
+              {totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#c4a574] text-[#3d2b1f] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {totalItems()}
+                  {totalItems}
                 </span>
               )}
             </Link>
@@ -70,7 +106,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isOpen && (
         <div className="md:hidden bg-[#4a3528] border-t border-[#5a4030]">
           <div className="px-4 py-3 space-y-2">
@@ -88,6 +123,15 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user?.isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="block py-2 px-3 rounded-lg text-[#c4a574]"
+              >
+                لوحة الأدمن
+              </Link>
+            )}
           </div>
         </div>
       )}
