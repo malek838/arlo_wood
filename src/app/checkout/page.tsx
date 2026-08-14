@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCartStore } from "@/lib/store";
 import { paymentMethods } from "@/lib/data";
 import { formatPrice, generateWhatsAppLink } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { ArrowRight } from "lucide-react";
 
 export default function CheckoutPage() {
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const u = localStorage.getItem("arlo-user");
@@ -72,45 +74,60 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    setSubmitting(true);
 
-    // حفظ الطلب في localStorage عشان الأدمن يشوفه
-    const order = {
+    const paymentLabel =
+      form.paymentMethod === "other"
+        ? form.otherPayment
+        : paymentMethods.find((m) => m.id === form.paymentMethod)?.name || form.paymentMethod;
+
+    const orderItems = items.map((i) => ({
+      name: i.product.nameAr,
+      quantity: i.quantity,
+      price: i.product.price,
+    }));
+
+    const { error } = await supabase.from("orders").insert({
       name: form.name,
       phone: form.phone,
       address: form.address,
       city: form.city,
-      paymentMethod: form.paymentMethod === "other" ? form.otherPayment : form.paymentMethod,
-      notes: form.notes,
-      items: items.map((i) => ({
-        name: i.product.nameAr,
-        quantity: i.quantity,
-        price: i.product.price,
-      })),
+      payment_method: paymentLabel,
+      notes: form.notes || null,
+      items: orderItems,
       total: totalPrice(),
-      date: new Date().toISOString(),
-    };
-    const existing = JSON.parse(localStorage.getItem("arlo-orders") || "[]");
-    existing.unshift(order);
-    localStorage.setItem("arlo-orders", JSON.stringify(existing));
+      status: "pending",
+    });
 
-    // تحديث بيانات المستخدم لو مسجل
+    if (error) {
+      console.error(error);
+      alert("حصل خطأ في حفظ الطلب: " + error.message);
+      setSubmitting(false);
+      return;
+    }
+
     const u = localStorage.getItem("arlo-user");
     if (u) {
       try {
         const user = JSON.parse(u);
-        if (!user.isAdmin) {
-          const updated = { ...user, name: form.name, phone: form.phone, address: form.address, city: form.city };
-          localStorage.setItem("arlo-user", JSON.stringify(updated));
-          // تحديث في قائمة المستخدمين كمان
-          const users = JSON.parse(localStorage.getItem("arlo-users") || "[]");
-          const idx = users.findIndex((x: any) => x.email === user.email);
-          if (idx !== -1) {
-            users[idx] = { ...users[idx], ...updated };
-            localStorage.setItem("arlo-users", JSON.stringify(users));
-          }
+        if (!user.isAdmin && user.email) {
+          await supabase
+            .from("users")
+            .update({
+              name: form.name,
+              phone: form.phone,
+              address: form.address,
+              city: form.city,
+            })
+            .eq("email", user.email);
+
+          localStorage.setItem(
+            "arlo-user",
+            JSON.stringify({ ...user, name: form.name, phone: form.phone, address: form.address, city: form.city })
+          );
         }
       } catch {}
     }
@@ -141,36 +158,31 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">الاسم الكامل *</label>
-                <input type="text" value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-[#e8d5b7] outline-none focus:ring-2 focus:ring-[#c4a574]" />
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">رقم الهاتف *</label>
-                <input type="tel" value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-[#e8d5b7] outline-none focus:ring-2 focus:ring-[#c4a574]" />
                 {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">العنوان بالتفصيل *</label>
-                <input type="text" value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-[#e8d5b7] outline-none focus:ring-2 focus:ring-[#c4a574]" />
                 {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">المدينة *</label>
-                <input type="text" value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                <input type="text" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-[#e8d5b7] outline-none focus:ring-2 focus:ring-[#c4a574]" />
                 {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">ملاحظات</label>
-                <input type="text" value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-[#e8d5b7] outline-none focus:ring-2 focus:ring-[#c4a574]" />
               </div>
             </div>
@@ -182,14 +194,10 @@ export default function CheckoutPage() {
               {paymentMethods.map((method) => (
                 <label key={method.id}
                   className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition ${
-                    form.paymentMethod === method.id
-                      ? "border-[#c4a574] bg-[#f5e6d3]/50"
-                      : "border-[#e8d5b7] hover:border-[#c4a574]"
+                    form.paymentMethod === method.id ? "border-[#c4a574] bg-[#f5e6d3]/50" : "border-[#e8d5b7] hover:border-[#c4a574]"
                   }`}>
-                  <input type="radio" name="payment"
-                    checked={form.paymentMethod === method.id}
-                    onChange={() => setForm({ ...form, paymentMethod: method.id as any })}
-                    className="w-4 h-4" />
+                  <input type="radio" name="payment" checked={form.paymentMethod === method.id}
+                    onChange={() => setForm({ ...form, paymentMethod: method.id as any })} className="w-4 h-4" />
                   <span className="font-medium">{method.name}</span>
                 </label>
               ))}
@@ -220,9 +228,9 @@ export default function CheckoutPage() {
             <span>الإجمالي</span>
             <span>{formatPrice(totalPrice())}</span>
           </div>
-          <button type="submit"
-            className="w-full mt-6 bg-[#3d2b1f] text-[#f5e6d3] font-bold py-3.5 rounded-xl hover:bg-[#5a4030] transition">
-            تأكيد الطلب وإرساله عبر واتساب
+          <button type="submit" disabled={submitting}
+            className="w-full mt-6 bg-[#3d2b1f] text-[#f5e6d3] font-bold py-3.5 rounded-xl hover:bg-[#5a4030] transition disabled:opacity-60">
+            {submitting ? "جاري الحفظ..." : "تأكيد الطلب وإرساله عبر واتساب"}
           </button>
         </div>
       </form>

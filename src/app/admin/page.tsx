@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { Plus, Trash2, LogOut, Package, Eye, EyeOff, Users, ClipboardList } from "lucide-react";
+import {
+  Plus, Trash2, LogOut, Package, Eye, EyeOff, Users, ClipboardList,
+  CheckCircle, Truck, XCircle
+} from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -24,8 +27,6 @@ export default function AdminPage() {
     dimensions: "",
     customizable: true,
   });
-
-  const ADMIN_SECRET = "Kali@Remote#2026!X7".repeat(4);
 
   useEffect(() => {
     const u = localStorage.getItem("arlo-user");
@@ -83,7 +84,7 @@ export default function AdminPage() {
     loadData();
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا المنتج نهائياً؟")) return;
     await supabase.from("products").delete().eq("id", id);
     loadData();
@@ -92,6 +93,32 @@ export default function AdminPage() {
   const toggleActive = async (id: string, current: boolean) => {
     await supabase.from("products").update({ active: !current }).eq("id", id);
     loadData();
+  };
+
+  // ===== إدارة حالة الطلب =====
+  const updateOrderStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+    if (error) {
+      alert("خطأ: " + error.message);
+      return;
+    }
+    loadData();
+  };
+
+  const deleteOrder = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟")) return;
+    await supabase.from("orders").delete().eq("id", id);
+    loadData();
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "pending": return { text: "جديد", color: "bg-yellow-100 text-yellow-800" };
+      case "confirmed": return { text: "مؤكد", color: "bg-blue-100 text-blue-800" };
+      case "shipped": return { text: "تم الشحن", color: "bg-green-100 text-green-800" };
+      case "cancelled": return { text: "ملغي", color: "bg-red-100 text-red-800" };
+      default: return { text: status || "جديد", color: "bg-gray-100 text-gray-800" };
+    }
   };
 
   const logout = () => {
@@ -108,7 +135,7 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-[#3d2b1f] flex items-center gap-2">
             <Package className="w-8 h-8 text-[#c4a574]" /> لوحة تحكم الأدمن
           </h1>
-          <p className="text-gray-500 text-sm mt-1">مرحباً {user.name} — البيانات من قاعدة البيانات</p>
+          <p className="text-gray-500 text-sm mt-1">مرحباً {user.name}</p>
         </div>
         <div className="flex gap-3">
           <Link href="/products" className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50">المتجر</Link>
@@ -118,7 +145,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-8 bg-[#f5e6d3] p-1 rounded-xl w-fit">
+      <div className="flex gap-2 mb-8 bg-[#f5e6d3] p-1 rounded-xl w-fit flex-wrap">
         <button onClick={() => setTab("products")} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium ${tab === "products" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"}`}>
           <Package className="w-4 h-4" /> المنتجات ({products.length})
         </button>
@@ -130,8 +157,9 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {loading && <p className="text-center py-10">جاري التحميل من قاعدة البيانات...</p>}
+      {loading && <p className="text-center py-10">جاري التحميل...</p>}
 
+      {/* ========== PRODUCTS ========== */}
       {tab === "products" && !loading && (
         <>
           <form onSubmit={handleAdd} className="bg-white rounded-2xl shadow border border-[#e8d5b7]/40 p-6 mb-10 space-y-4">
@@ -182,9 +210,9 @@ export default function AdminPage() {
             </button>
           </form>
 
-          <h2 className="text-xl font-bold text-[#3d2b1f] mb-4">المنتجات في قاعدة البيانات</h2>
+          <h2 className="text-xl font-bold text-[#3d2b1f] mb-4">المنتجات</h2>
           {products.length === 0 ? (
-            <p className="text-gray-500 text-center py-10 bg-white rounded-xl border">لا توجد منتجات بعد — أضف أول منتج</p>
+            <p className="text-gray-500 text-center py-10 bg-white rounded-xl border">لا توجد منتجات</p>
           ) : (
             <div className="space-y-3">
               {products.map((p) => (
@@ -197,10 +225,10 @@ export default function AdminPage() {
                     <p className="text-sm text-gray-500">{p.price} ج.م • {p.wood_type}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => toggleActive(p.id, p.active)} className={`p-2 rounded-lg ${!p.active ? "text-green-600 hover:bg-green-50" : "text-orange-600 hover:bg-orange-50"}`} title={!p.active ? "تفعيل" : "تعطيل"}>
+                    <button onClick={() => toggleActive(p.id, p.active)} className={`p-2 rounded-lg ${!p.active ? "text-green-600 hover:bg-green-50" : "text-orange-600 hover:bg-orange-50"}`}>
                       {!p.active ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                     </button>
-                    <button onClick={() => handleDelete(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="حذف">
+                    <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -211,11 +239,12 @@ export default function AdminPage() {
         </>
       )}
 
+      {/* ========== USERS ========== */}
       {tab === "users" && !loading && (
         <div>
           <h2 className="text-xl font-bold text-[#3d2b1f] mb-4">المستخدمين المسجلين</h2>
           {users.length === 0 ? (
-            <p className="text-gray-500 text-center py-10 bg-white rounded-xl border">لا يوجد مستخدمين بعد</p>
+            <p className="text-gray-500 text-center py-10 bg-white rounded-xl border">لا يوجد مستخدمين</p>
           ) : (
             <div className="space-y-3">
               {users.map((u) => (
@@ -224,7 +253,7 @@ export default function AdminPage() {
                   <p className="text-sm text-gray-600">{u.email}</p>
                   {u.phone && <p className="text-sm text-gray-500">هاتف: {u.phone}</p>}
                   {u.address && <p className="text-sm text-gray-500">عنوان: {u.address}{u.city ? ` - ${u.city}` : ""}</p>}
-                  {u.created_at && <p className="text-xs text-gray-400 mt-1">تاريخ التسجيل: {new Date(u.created_at).toLocaleDateString("ar-EG")}</p>}
+                  {u.created_at && <p className="text-xs text-gray-400 mt-1">{new Date(u.created_at).toLocaleDateString("ar-EG")}</p>}
                 </div>
               ))}
             </div>
@@ -232,6 +261,7 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* ========== ORDERS ========== */}
       {tab === "orders" && !loading && (
         <div>
           <h2 className="text-xl font-bold text-[#3d2b1f] mb-4">سجل الطلبات</h2>
@@ -239,29 +269,71 @@ export default function AdminPage() {
             <p className="text-gray-500 text-center py-10 bg-white rounded-xl border">لا توجد طلبات بعد</p>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => (
-                <div key={order.id} className="bg-white p-5 rounded-xl border border-[#e8d5b7]/40 shadow-sm">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-bold text-[#3d2b1f]">{order.name}</p>
-                      <p className="text-sm text-gray-600">{order.phone}</p>
-                      <p className="text-sm text-gray-500">{order.address} - {order.city}</p>
+              {orders.map((order) => {
+                const st = statusLabel(order.status || "pending");
+                return (
+                  <div key={order.id} className="bg-white p-5 rounded-xl border border-[#e8d5b7]/40 shadow-sm">
+                    <div className="flex flex-wrap justify-between items-start gap-3 mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-bold text-[#3d2b1f]">{order.name}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${st.color}`}>{st.text}</span>
+                        </div>
+                        <p className="text-sm text-gray-600">{order.phone}</p>
+                        <p className="text-sm text-gray-500">{order.address} - {order.city}</p>
+                        <p className="text-sm text-[#c4a574] mt-1">{order.payment_method}</p>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {order.created_at ? new Date(order.created_at).toLocaleString("ar-EG") : ""}
+                      </p>
                     </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-[#c4a574]">{order.payment_method}</p>
-                      <p className="text-xs text-gray-400">{order.created_at ? new Date(order.created_at).toLocaleString("ar-EG") : ""}</p>
+
+                    {order.items && (
+                      <div className="border-t pt-3 mt-2 mb-4">
+                        {(Array.isArray(order.items) ? order.items : []).map((item: any, j: number) => (
+                          <p key={j} className="text-sm text-gray-700">• {item.name} × {item.quantity} — {item.price} ج.م</p>
+                        ))}
+                        <p className="font-bold mt-2 text-[#3d2b1f]">الإجمالي: {order.total} ج.م</p>
+                        {order.notes && <p className="text-sm text-gray-500 mt-1">ملاحظات: {order.notes}</p>}
+                      </div>
+                    )}
+
+                    {/* أزرار الحالة */}
+                    <div className="flex flex-wrap gap-2 border-t pt-3">
+                      {order.status !== "confirmed" && order.status !== "shipped" && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, "confirmed")}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        >
+                          <CheckCircle className="w-4 h-4" /> تأكيد
+                        </button>
+                      )}
+                      {order.status !== "shipped" && order.status !== "cancelled" && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, "shipped")}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-green-50 text-green-700 hover:bg-green-100"
+                        >
+                          <Truck className="w-4 h-4" /> تم الشحن
+                        </button>
+                      )}
+                      {order.status !== "cancelled" && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, "cancelled")}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-orange-50 text-orange-700 hover:bg-orange-100"
+                        >
+                          <XCircle className="w-4 h-4" /> إلغاء
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteOrder(order.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-red-50 text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 className="w-4 h-4" /> حذف
+                      </button>
                     </div>
                   </div>
-                  {order.items && (
-                    <div className="border-t pt-3 mt-2">
-                      {(Array.isArray(order.items) ? order.items : []).map((item: any, j: number) => (
-                        <p key={j} className="text-sm text-gray-700">• {item.name} × {item.quantity} — {item.price} ج.م</p>
-                      ))}
-                      <p className="font-bold mt-2 text-[#3d2b1f]">الإجمالي: {order.total} ج.م</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
