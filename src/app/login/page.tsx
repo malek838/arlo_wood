@@ -46,7 +46,11 @@ export default function LoginPage() {
           phone: phone || null, address: address || null, city: city || null,
         }).select().single();
         if (insertError) {
-          setError(insertError.code === "23505" || "duplicate" in (insertError.message || "") ? "الإيميل مسجل مسبقاً" : insertError.message);
+          if (insertError.code === "23505" || (insertError.message || "").includes("duplicate")) {
+          setError("الإيميل مسجل مسبقاً");
+        } else {
+          setError(String(insertError.message || "حدث خطأ"));
+        }
           setLoading(false);
           return;
         }
