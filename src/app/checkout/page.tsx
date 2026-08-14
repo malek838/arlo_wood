@@ -190,7 +190,7 @@ export default function CheckoutPage() {
                     checked={form.paymentMethod === method.id}
                     onChange={() => setForm({ ...form, paymentMethod: method.id as any })}
                     className="w-4 h-4" />
-                  <span className="font-medium">{method.nameAr}</span>
+                  <span className="font-medium">{method.name}</span>
                 </label>
               ))}
             </div>
