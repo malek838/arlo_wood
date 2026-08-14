@@ -101,16 +101,6 @@ export default function CheckoutPage() {
 
     const { error } = await supabase.from("orders").insert({
       user_id: userId,
-    try {
-      const raw = localStorage.getItem("arlo-user");
-      if (raw) {
-        const uu = JSON.parse(raw);
-        if (!uu.isAdmin && uu.id) userId = uu.id;
-      }
-    } catch {}
-
-    await supabase.from("orders").insert({
-      user_id: userId,
       name: form.name,
       phone: form.phone,
       address: form.address,
