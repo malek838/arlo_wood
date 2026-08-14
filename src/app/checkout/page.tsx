@@ -90,7 +90,17 @@ export default function CheckoutPage() {
       price: i.product.price,
     }));
 
-    const { error } = let userId: string | null = null;
+    let userId: string | null = null;
+    try {
+      const raw = localStorage.getItem("arlo-user");
+      if (raw) {
+        const uu = JSON.parse(raw);
+        if (!uu.isAdmin && uu.id) userId = uu.id;
+      }
+    } catch {}
+
+    const { error } = await supabase.from("orders").insert({
+      user_id: userId,
     try {
       const raw = localStorage.getItem("arlo-user");
       if (raw) {
