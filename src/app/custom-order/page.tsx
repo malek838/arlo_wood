@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { woodTypes, paymentMethods } from "@/lib/data";
 import { generateWhatsAppLink } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { TreePine } from "lucide-react";
 
 export default function CustomOrderPage() {
@@ -39,7 +40,7 @@ export default function CustomOrderPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -50,6 +51,45 @@ export default function CustomOrderPage() {
 • الكمية: ${form.quantity}
 • ملاحظات التخصيص: ${form.notes || "لا يوجد"}
     `.trim();
+
+    const paymentLabel =
+      form.paymentMethod === "other"
+        ? form.otherPayment
+        : form.paymentMethod;
+
+    let userId: string | null = null;
+    try {
+      const raw = localStorage.getItem("arlo-user");
+      if (raw) {
+        const uu = JSON.parse(raw);
+        if (!uu.isAdmin && uu.id) userId = uu.id;
+      }
+    } catch {}
+
+    const dims = [form.length, form.width, form.height].filter(Boolean).join("x") || "-";
+    const { error } = await supabase.from("orders").insert({
+      user_id: userId,
+      name: form.name,
+      phone: form.phone.replace(/\s/g, ""),
+      address: form.address,
+      city: form.city,
+      payment_method: paymentLabel,
+      notes: form.notes || null,
+      items: [{
+        name: form.productName || "طلب مخصص",
+        quantity: form.quantity || 1,
+        price: 0,
+        wood: form.woodType,
+        dimensions: dims,
+      }],
+      total: 0,
+      status: "pending",
+      order_type: "custom",
+    });
+    if (error) {
+      alert("حصل خطأ في حفظ الطلب: " + error.message);
+      return;
+    }
 
     const link = generateWhatsAppLink(
       [],

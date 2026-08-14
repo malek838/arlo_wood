@@ -27,6 +27,8 @@ export default function Navbar() {
     { href: "/", label: "الرئيسية" },
     { href: "/products", label: "المنتجات" },
     { href: "/custom-order", label: "طلب مخصص" },
+    { href: "/how-to-order", label: "ازاي تطلب" },
+    { href: "/track-order", label: "تتبع طلب" },
     { href: "/about", label: "من نحن" },
     { href: "/contact", label: "تواصل معنا" },
   ];
