@@ -127,35 +127,21 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-8 bg-[#f5e6d3] p-1 rounded-xl w-fit">
-        <button
-          onClick={() => setTab("products")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            tab === "products" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"
-          }`}
-        >
+        <button onClick={() => setTab("products")}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "products" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"}`}>
           <Package className="w-4 h-4" /> المنتجات
         </button>
-        <button
-          onClick={() => setTab("users")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            tab === "users" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"
-          }`}
-        >
+        <button onClick={() => setTab("users")}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "users" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"}`}>
           <Users className="w-4 h-4" /> المستخدمين ({users.length})
         </button>
-        <button
-          onClick={() => setTab("orders")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${
-            tab === "orders" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"
-          }`}
-        >
+        <button onClick={() => setTab("orders")}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "orders" ? "bg-[#3d2b1f] text-white" : "text-[#5a4030]"}`}>
           <ClipboardList className="w-4 h-4" /> الطلبات ({orders.length})
         </button>
       </div>
 
-      {/* ========== PRODUCTS TAB ========== */}
       {tab === "products" && (
         <>
           <form onSubmit={handleAdd} className="bg-white rounded-2xl shadow border border-[#e8d5b7]/40 p-6 mb-10 space-y-4">
@@ -247,7 +233,6 @@ export default function AdminPage() {
         </>
       )}
 
-      {/* ========== USERS TAB ========== */}
       {tab === "users" && (
         <div>
           <h2 className="text-xl font-bold text-[#3d2b1f] mb-4">المستخدمين المسجلين ({users.length})</h2>
@@ -273,14 +258,12 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ========== ORDERS TAB ========== */}
       {tab === "orders" && (
         <div>
           <h2 className="text-xl font-bold text-[#3d2b1f] mb-4">سجل الطلبات ({orders.length})</h2>
           {orders.length === 0 ? (
             <p className="text-gray-500 text-center py-10 bg-white rounded-xl border">
-              لا توجد طلبات محفوظة بعد<br/>
-              <span className="text-xs">(الطلبات بتتحفظ لما العميل يؤكد الطلب من صفحة الـ Checkout)</span>
+              لا توجد طلبات محفوظة بعد
             </p>
           ) : (
             <div className="space-y-4">

@@ -15,9 +15,8 @@ export default function ProductsPage() {
     const saved = localStorage.getItem("arlo-admin-products");
     if (saved) {
       try {
-        const extra: Product[] = JSON.parse(saved);
-        // نعرض المنتجات النشطة فقط
-        const activeExtra = extra.filter((p: any) => p.active !== false);
+        const extra: any[] = JSON.parse(saved);
+        const activeExtra = extra.filter((p) => p.active !== false);
         setAllProducts([...staticProducts, ...activeExtra]);
       } catch {}
     }
@@ -44,7 +43,6 @@ export default function ProductsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <h1 className="text-3xl font-bold text-[#3d2b1f] mb-8">كل المنتجات</h1>
 
-      {/* Search + Filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
