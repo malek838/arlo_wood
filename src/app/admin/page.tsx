@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   Plus, Trash2, LogOut, Package, Eye, EyeOff, Users, ClipboardList,
-  CheckCircle, Truck, XCircle, Star
+  CheckCircle, Truck, XCircle, Star, Pencil, X
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState<"products" | "users" | "orders">("products");
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nameAr: "", price: "", descriptionAr: "", image: "",
     woodType: "زان", category: "furniture", dimensions: "", customizable: true,
@@ -42,11 +43,34 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setForm({
+      nameAr: "", price: "", descriptionAr: "", image: "",
+      woodType: "زان", category: "furniture", dimensions: "", customizable: true,
+    });
+    setEditingId(null);
+  };
+
+  const startEdit = (p: any) => {
+    setEditingId(p.id);
+    setForm({
+      nameAr: p.name_ar || "",
+      price: String(p.price ?? ""),
+      descriptionAr: p.description_ar || "",
+      image: p.image || "",
+      woodType: p.wood_type || "زان",
+      category: p.category || "furniture",
+      dimensions: p.dimensions || "",
+      customizable: p.customizable ?? true,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nameAr || !form.price) return;
-    const { error } = await supabase.from("products").insert({
-      id: "prod-" + Date.now(),
+
+    const payload = {
       name_ar: form.nameAr,
       name: form.nameAr,
       price: Number(form.price),
@@ -57,18 +81,31 @@ export default function AdminPage() {
       category: form.category,
       dimensions: form.dimensions || null,
       customizable: form.customizable,
-      active: true,
-      featured: false,
-    });
-    if (error) { alert("خطأ: " + error.message); return; }
-    setForm({ nameAr: "", price: "", descriptionAr: "", image: "", woodType: "زان", category: "furniture", dimensions: "", customizable: true });
-    alert("تم إضافة المنتج ✓");
+    };
+
+    if (editingId) {
+      const { error } = await supabase.from("products").update(payload).eq("id", editingId);
+      if (error) { alert("خطأ في التعديل: " + error.message); return; }
+      alert("تم تعديل المنتج ✓");
+    } else {
+      const { error } = await supabase.from("products").insert({
+        id: "prod-" + Date.now(),
+        ...payload,
+        active: true,
+        featured: false,
+      });
+      if (error) { alert("خطأ في الإضافة: " + error.message); return; }
+      alert("تم إضافة المنتج ✓");
+    }
+
+    resetForm();
     loadData();
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("حذف المنتج نهائياً؟")) return;
     await supabase.from("products").delete().eq("id", id);
+    if (editingId === id) resetForm();
     loadData();
   };
 
@@ -80,7 +117,7 @@ export default function AdminPage() {
   const toggleFeatured = async (id: string, current: boolean) => {
     const { error } = await supabase.from("products").update({ featured: !current }).eq("id", id);
     if (error) {
-      alert("خطأ: " + error.message + "\nتأكد إنك عملت SQL: ALTER TABLE products ADD COLUMN featured BOOLEAN DEFAULT false;");
+      alert("خطأ: " + error.message + "\nنفّذ في Supabase:\nALTER TABLE products ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;");
       return;
     }
     loadData();
@@ -117,11 +154,9 @@ export default function AdminPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-[#3d2b1f] flex items-center gap-2">
-            <Package className="w-8 h-8 text-[#c4a574]" /> لوحة الأدمن
-          </h1>
-        </div>
+        <h1 className="text-3xl font-bold text-[#3d2b1f] flex items-center gap-2">
+          <Package className="w-8 h-8 text-[#c4a574]" /> لوحة الأدمن
+        </h1>
         <div className="flex gap-2">
           <Link href="/" className="px-4 py-2 rounded-lg border text-sm">الرئيسية</Link>
           <Link href="/products" className="px-4 py-2 rounded-lg border text-sm">المتجر</Link>
@@ -147,8 +182,18 @@ export default function AdminPage() {
 
       {tab === "products" && !loading && (
         <>
-          <form onSubmit={handleAdd} className="bg-white rounded-2xl border p-6 mb-8 space-y-4">
-            <h2 className="text-xl font-bold">إضافة منتج</h2>
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl border p-6 mb-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#3d2b1f]">
+                {editingId ? "تعديل المنتج" : "إضافة منتج جديد"}
+              </h2>
+              {editingId && (
+                <button type="button" onClick={resetForm} className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600">
+                  <X className="w-4 h-4" /> إلغاء التعديل
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input placeholder="اسم المنتج *" value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} className="px-4 py-2.5 rounded-xl border" required />
               <input type="number" placeholder="السعر *" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="px-4 py-2.5 rounded-xl border" required />
@@ -165,40 +210,39 @@ export default function AdminPage() {
               <input placeholder="رابط الصورة" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className="px-4 py-2.5 rounded-xl border" />
             </div>
             <textarea placeholder="الوصف" value={form.descriptionAr} onChange={(e) => setForm({ ...form, descriptionAr: e.target.value })} rows={2} className="w-full px-4 py-2.5 rounded-xl border" />
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.customizable} onChange={(e) => setForm({ ...form, customizable: e.target.checked })} className="w-4 h-4" />
+              قابل للتخصيص
+            </label>
             <button type="submit" className="flex items-center gap-2 bg-[#3d2b1f] text-white font-bold px-6 py-3 rounded-xl">
-              <Plus className="w-5 h-5" /> إضافة
+              {editingId ? (<><Pencil className="w-5 h-5" /> حفظ التعديلات</>) : (<><Plus className="w-5 h-5" /> إضافة المنتج</>)}
             </button>
           </form>
 
-          <h2 className="text-xl font-bold mb-4">المنتجات — اضغط ☆ عشان تظهر في الرئيسية</h2>
+          <h2 className="text-xl font-bold mb-4">كل المنتجات</h2>
           {products.length === 0 ? (
             <p className="text-center py-10 bg-white rounded-xl border">لا توجد منتجات</p>
           ) : (
             <div className="space-y-3">
               {products.map((p) => (
-                <div key={p.id} className={`flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border ${!p.active ? "opacity-50" : ""}`}>
+                <div key={p.id} className={`flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border ${!p.active ? "opacity-50" : ""} ${editingId === p.id ? "ring-2 ring-[#c4a574]" : ""}`}>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold">{p.name_ar}</p>
-                      {p.featured && <span className="text-xs bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded-full">★ في الرئيسية</span>}
+                      {p.featured && <span className="text-xs bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded-full">★ رئيسية</span>}
                       {!p.active && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">معطل</span>}
                     </div>
                     <p className="text-sm text-gray-500">{p.price} ج.م • {p.wood_type}</p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => toggleFeatured(p.id, !!p.featured)}
-                      className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold border-2 ${
-                        p.featured
-                          ? "bg-yellow-400 text-yellow-900 border-yellow-500"
-                          : "bg-white text-gray-700 border-gray-300 hover:bg-yellow-50"
-                      }`}
-                    >
-                      <Star className="w-4 h-4" />
-                      {p.featured ? "في الرئيسية" : "أضف للرئيسية"}
+                    <button type="button" onClick={() => startEdit(p)} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                      <Pencil className="w-4 h-4" /> تعديل
                     </button>
-                    <button type="button" onClick={() => toggleActive(p.id, p.active)} className="p-2 rounded-lg border hover:bg-gray-50" title={p.active ? "تعطيل" : "تفعيل"}>
+                    <button type="button" onClick={() => toggleFeatured(p.id, !!p.featured)} className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold border ${p.featured ? "bg-yellow-400 text-yellow-900 border-yellow-500" : "bg-white text-gray-700 border-gray-300"}`}>
+                      <Star className="w-4 h-4" />
+                      {p.featured ? "في الرئيسية" : "للرئيسية"}
+                    </button>
+                    <button type="button" onClick={() => toggleActive(p.id, p.active)} className="p-2 rounded-lg border hover:bg-gray-50">
                       {p.active ? <EyeOff className="w-5 h-5 text-orange-600" /> : <Eye className="w-5 h-5 text-green-600" />}
                     </button>
                     <button type="button" onClick={() => handleDeleteProduct(p.id)} className="p-2 rounded-lg border text-red-600 hover:bg-red-50">
@@ -230,14 +274,12 @@ export default function AdminPage() {
             const st = statusLabel(order.status || "pending");
             return (
               <div key={order.id} className="bg-white p-5 rounded-xl border">
-                <div className="flex flex-wrap justify-between gap-2 mb-2">
-                  <div>
-                    <span className="font-bold">{order.name}</span>
-                    <span className={`mr-2 text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.text}</span>
-                    <p className="text-sm text-gray-600">{order.phone}</p>
-                    <p className="text-sm text-gray-500">{order.address} - {order.city}</p>
-                  </div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <span className="font-bold">{order.name}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.text}</span>
                 </div>
+                <p className="text-sm text-gray-600">{order.phone}</p>
+                <p className="text-sm text-gray-500 mb-2">{order.address} - {order.city}</p>
                 {order.items && (
                   <div className="border-t pt-2 mb-3 text-sm">
                     {(Array.isArray(order.items) ? order.items : []).map((item: any, j: number) => (
