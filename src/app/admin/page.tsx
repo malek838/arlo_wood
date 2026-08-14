@@ -71,7 +71,7 @@ export default function AdminPage() {
     setUploading(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
-      const fileName = `\( {Date.now()}- \){Math.random().toString(36).slice(2)}.${ext}`;
+      const fileName = Date.now() + "-" + Math.random().toString(36).slice(2) + "." + ext;
       const { error } = await supabase.storage.from("products").upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
