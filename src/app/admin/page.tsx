@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   Plus, Trash2, LogOut, Package, Eye, EyeOff, Users, ClipboardList,
-  CheckCircle, Truck, XCircle, Star, Pencil, X, Upload
+  CheckCircle, Truck, XCircle, Star, Pencil, X, Upload,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -45,10 +45,7 @@ export default function AdminPage() {
   };
 
   const resetForm = () => {
-    setForm({
-      nameAr: "", price: "", descriptionAr: "", image: "",
-      woodType: "زان", category: "furniture", dimensions: "", customizable: true,
-    });
+    setForm({ nameAr: "", price: "", descriptionAr: "", image: "", woodType: "زان", category: "furniture", dimensions: "", customizable: true });
     setEditingId(null);
   };
 
@@ -97,14 +94,8 @@ export default function AdminPage() {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      alert("اختار ملف صورة فقط");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("حجم الصورة كبير (الحد 5 ميجا)");
-      return;
-    }
+    if (!file.type.startsWith("image/")) { alert("اختار صورة فقط"); return; }
+    if (file.size > 5 * 1024 * 1024) { alert("الحد 5 ميجا"); return; }
     const url = await uploadImage(file);
     if (url) setForm((f) => ({ ...f, image: url }));
   };
@@ -112,7 +103,6 @@ export default function AdminPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nameAr || !form.price) return;
-
     const payload = {
       name_ar: form.nameAr,
       name: form.nameAr,
@@ -125,28 +115,23 @@ export default function AdminPage() {
       dimensions: form.dimensions || null,
       customizable: form.customizable,
     };
-
     if (editingId) {
       const { error } = await supabase.from("products").update(payload).eq("id", editingId);
-      if (error) { alert("خطأ في التعديل: " + error.message); return; }
-      alert("تم تعديل المنتج ✓");
+      if (error) { alert(error.message); return; }
+      alert("تم التعديل ✓");
     } else {
       const { error } = await supabase.from("products").insert({
-        id: "prod-" + Date.now(),
-        ...payload,
-        active: true,
-        featured: false,
+        id: "prod-" + Date.now(), ...payload, active: true, featured: false,
       });
-      if (error) { alert("خطأ في الإضافة: " + error.message); return; }
-      alert("تم إضافة المنتج ✓");
+      if (error) { alert(error.message); return; }
+      alert("تم الإضافة ✓");
     }
-
     resetForm();
     loadData();
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("حذف المنتج نهائياً؟")) return;
+    if (!confirm("حذف المنتج؟")) return;
     await supabase.from("products").delete().eq("id", id);
     if (editingId === id) resetForm();
     loadData();
@@ -159,10 +144,7 @@ export default function AdminPage() {
 
   const toggleFeatured = async (id: string, current: boolean) => {
     const { error } = await supabase.from("products").update({ featured: !current }).eq("id", id);
-    if (error) {
-      alert("خطأ: " + error.message + "\nنفّذ: ALTER TABLE products ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;");
-      return;
-    }
+    if (error) { alert(error.message); return; }
     loadData();
   };
 
@@ -177,14 +159,18 @@ export default function AdminPage() {
     loadData();
   };
 
+  const deleteUser = async (id: string, name: string) => {
+    if (!confirm("حذف حساب " + name + "؟")) return;
+    const { error } = await supabase.from("users").delete().eq("id", id);
+    if (error) alert(error.message);
+    else loadData();
+  };
+
   const statusLabel = (status: string) => {
-    switch (status) {
-      case "pending": return { text: "جديد", color: "bg-yellow-100 text-yellow-800" };
-      case "confirmed": return { text: "مؤكد", color: "bg-blue-100 text-blue-800" };
-      case "shipped": return { text: "تم الشحن", color: "bg-green-100 text-green-800" };
-      case "cancelled": return { text: "ملغي", color: "bg-red-100 text-red-800" };
-      default: return { text: "جديد", color: "bg-gray-100 text-gray-800" };
-    }
+    if (status === "confirmed") return { text: "مؤكد", color: "bg-blue-100 text-blue-800" };
+    if (status === "shipped") return { text: "تم الشحن", color: "bg-green-100 text-green-800" };
+    if (status === "cancelled") return { text: "ملغي", color: "bg-red-100 text-red-800" };
+    return { text: "جديد", color: "bg-yellow-100 text-yellow-800" };
   };
 
   const logout = () => {
@@ -203,20 +189,20 @@ export default function AdminPage() {
         <div className="flex gap-2">
           <Link href="/" className="px-4 py-2 rounded-lg border text-sm">الرئيسية</Link>
           <Link href="/products" className="px-4 py-2 rounded-lg border text-sm">المتجر</Link>
-          <button onClick={logout} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm">
+          <button type="button" onClick={logout} className="flex items-center gap-1 px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm">
             <LogOut className="w-4 h-4" /> خروج
           </button>
         </div>
       </div>
 
       <div className="flex gap-2 mb-8 bg-[#f5e6d3] p-1 rounded-xl w-fit flex-wrap">
-        <button onClick={() => setTab("products")} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "products" ? "bg-[#3d2b1f] text-white" : ""}`}>
+        <button type="button" onClick={() => setTab("products")} className={"px-4 py-2 rounded-lg text-sm font-medium " + (tab === "products" ? "bg-[#3d2b1f] text-white" : "")}>
           المنتجات ({products.length})
         </button>
-        <button onClick={() => setTab("users")} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "users" ? "bg-[#3d2b1f] text-white" : ""}`}>
+        <button type="button" onClick={() => setTab("users")} className={"px-4 py-2 rounded-lg text-sm font-medium " + (tab === "users" ? "bg-[#3d2b1f] text-white" : "")}>
           المستخدمين ({users.length})
         </button>
-        <button onClick={() => setTab("orders")} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "orders" ? "bg-[#3d2b1f] text-white" : ""}`}>
+        <button type="button" onClick={() => setTab("orders")} className={"px-4 py-2 rounded-lg text-sm font-medium " + (tab === "orders" ? "bg-[#3d2b1f] text-white" : "")}>
           الطلبات ({orders.length})
         </button>
       </div>
@@ -224,19 +210,16 @@ export default function AdminPage() {
       {loading && <p className="text-center py-10">جاري التحميل...</p>}
 
       {tab === "products" && !loading && (
-        <>
+        <div>
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border p-6 mb-8 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#3d2b1f]">
-                {editingId ? "تعديل المنتج" : "إضافة منتج جديد"}
-              </h2>
+              <h2 className="text-xl font-bold">{editingId ? "تعديل المنتج" : "إضافة منتج"}</h2>
               {editingId && (
-                <button type="button" onClick={resetForm} className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600">
-                  <X className="w-4 h-4" /> إلغاء التعديل
+                <button type="button" onClick={resetForm} className="text-sm text-red-600 flex items-center gap-1">
+                  <X className="w-4 h-4" /> إلغاء
                 </button>
               )}
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input placeholder="اسم المنتج *" value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} className="px-4 py-2.5 rounded-xl border" required />
               <input type="number" placeholder="السعر *" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="px-4 py-2.5 rounded-xl border" required />
@@ -250,10 +233,8 @@ export default function AdminPage() {
                 <option value="kitchen">مطبخ</option>
               </select>
               <input placeholder="الأبعاد" value={form.dimensions} onChange={(e) => setForm({ ...form, dimensions: e.target.value })} className="px-4 py-2.5 rounded-xl border" />
-              <input placeholder="رابط صورة (اختياري لو هترفع ملف)" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className="px-4 py-2.5 rounded-xl border" />
+              <input placeholder="رابط صورة (اختياري)" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className="px-4 py-2.5 rounded-xl border" />
             </div>
-
-            {/* رفع صورة من الجهاز */}
             <div className="border border-dashed border-[#c4a574] rounded-xl p-4 bg-[#faf6f1]">
               <label className="flex flex-col sm:flex-row items-start sm:items-center gap-3 cursor-pointer">
                 <span className="flex items-center gap-2 bg-[#3d2b1f] text-white text-sm font-medium px-4 py-2 rounded-lg">
@@ -262,21 +243,20 @@ export default function AdminPage() {
                 </span>
                 <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="text-sm" />
               </label>
-              {form.image && (
-                <div className="mt-3 flex items-center gap-3">
-                  <img src={form.image} alt="معاينة" className="h-20 w-20 object-cover rounded-lg border" />
-                  <p className="text-xs text-gray-500 break-all max-w-md">{form.image}</p>
+              {form.image ? (
+                <div className="mt-3">
+                  <img src={form.image} alt="" className="h-20 w-20 object-cover rounded-lg border" />
                 </div>
-              )}
+              ) : null}
             </div>
-
             <textarea placeholder="الوصف" value={form.descriptionAr} onChange={(e) => setForm({ ...form, descriptionAr: e.target.value })} rows={2} className="w-full px-4 py-2.5 rounded-xl border" />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.customizable} onChange={(e) => setForm({ ...form, customizable: e.target.checked })} className="w-4 h-4" />
               قابل للتخصيص
             </label>
             <button type="submit" disabled={uploading} className="flex items-center gap-2 bg-[#3d2b1f] text-white font-bold px-6 py-3 rounded-xl disabled:opacity-60">
-              {editingId ? (<><Pencil className="w-5 h-5" /> حفظ التعديلات</>) : (<><Plus className="w-5 h-5" /> إضافة المنتج</>)}
+              {editingId ? <Pencil className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+              {editingId ? "حفظ التعديلات" : "إضافة المنتج"}
             </button>
           </form>
 
@@ -286,25 +266,24 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-3">
               {products.map((p) => (
-                <div key={p.id} className={`flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border ${!p.active ? "opacity-50" : ""} ${editingId === p.id ? "ring-2 ring-[#c4a574]" : ""}`}>
+                <div key={p.id} className={"flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border " + (!p.active ? "opacity-50" : "")}>
                   <div className="flex items-center gap-3">
-                    {p.image && <img src={p.image} alt="" className="w-14 h-14 object-cover rounded-lg border" />}
+                    {p.image ? <img src={p.image} alt="" className="w-14 h-14 object-cover rounded-lg border" /> : null}
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold">{p.name_ar}</p>
-                        {p.featured && <span className="text-xs bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded-full">★ رئيسية</span>}
-                        {!p.active && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">معطل</span>}
+                        {p.featured ? <span className="text-xs bg-yellow-200 px-2 py-0.5 rounded-full">رئيسية</span> : null}
+                        {!p.active ? <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">معطل</span> : null}
                       </div>
                       <p className="text-sm text-gray-500">{p.price} ج.م • {p.wood_type}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <button type="button" onClick={() => startEdit(p)} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                    <button type="button" onClick={() => startEdit(p)} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-blue-50 text-blue-700 border">
                       <Pencil className="w-4 h-4" /> تعديل
                     </button>
-                    <button type="button" onClick={() => toggleFeatured(p.id, !!p.featured)} className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold border ${p.featured ? "bg-yellow-400 text-yellow-900 border-yellow-500" : "bg-white text-gray-700 border-gray-300"}`}>
-                      <Star className="w-4 h-4" />
-                      {p.featured ? "في الرئيسية" : "للرئيسية"}
+                    <button type="button" onClick={() => toggleFeatured(p.id, !!p.featured)} className={"flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold border " + (p.featured ? "bg-yellow-400" : "bg-white")}>
+                      <Star className="w-4 h-4" /> {p.featured ? "في الرئيسية" : "للرئيسية"}
                     </button>
                     <button type="button" onClick={() => toggleActive(p.id, p.active)} className="p-2 rounded-lg border">
                       {p.active ? <EyeOff className="w-5 h-5 text-orange-600" /> : <Eye className="w-5 h-5 text-green-600" />}
@@ -317,7 +296,7 @@ export default function AdminPage() {
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {tab === "users" && !loading && (
@@ -330,19 +309,9 @@ export default function AdminPage() {
                 <div>
                   <p className="font-bold">{u.name}</p>
                   <p className="text-sm text-gray-600">{u.email}</p>
-                  {u.phone && <p className="text-sm">هاتف: {u.phone}</p>}
-                  {u.address && <p className="text-sm text-gray-500">{u.address}{u.city ? ` - ${u.city}` : ""}</p>}
+                  {u.phone ? <p className="text-sm">هاتف: {u.phone}</p> : null}
                 </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!confirm(`حذف حساب ${u.name}؟`)) return;
-                    const { error } = await supabase.from("users").delete().eq("id", u.id);
-                    if (error) alert("خطأ: " + error.message);
-                    else loadData();
-                  }}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
-                >
+                <button type="button" onClick={() => deleteUser(u.id, u.name)} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-700 border">
                   <Trash2 className="w-4 h-4" /> حذف الحساب
                 </button>
               </div>
@@ -350,39 +319,48 @@ export default function AdminPage() {
           )}
         </div>
       )}
-        </div>
-      )}
 
       {tab === "orders" && !loading && (
         <div className="space-y-4">
-          {orders.length === 0 ? <p className="text-center py-10 bg-white rounded-xl border">لا توجد طلبات</p> : orders.map((order) => {
-            const st = statusLabel(order.status || "pending");
-            return (
-              <div key={order.id} className="bg-white p-5 rounded-xl border">
-                <div className="flex flex-wrap gap-2 mb-2">
-                  <span className="font-bold">{order.name}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.text}</span>
-                  {order.order_type === "custom" && <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">مخصص</span>}
-                </div>
-                <p className="text-sm text-gray-600">{order.phone}</p>
-                <p className="text-sm text-gray-500 mb-2">{order.address} - {order.city}</p>
-                {order.items && (
-                  <div className="border-t pt-2 mb-3 text-sm">
-                    {(Array.isArray(order.items) ? order.items : []).map((item: any, j: number) => (
-                      <p key={j}>• {item.name} × {item.quantity}{item.dimensions ? ` (${item.dimensions})` : ""}</p>
-                    ))}
-                    <p className="font-bold mt-1">الإجمالي: {order.total} ج.م</p>
+          {orders.length === 0 ? (
+            <p className="text-center py-10 bg-white rounded-xl border">لا توجد طلبات</p>
+          ) : (
+            orders.map((order) => {
+              const st = statusLabel(order.status || "pending");
+              return (
+                <div key={order.id} className="bg-white p-5 rounded-xl border">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className="font-bold">{order.name}</span>
+                    <span className={"text-xs px-2 py-0.5 rounded-full " + st.color}>{st.text}</span>
                   </div>
-                )}
-                <div className="flex flex-wrap gap-2 border-t pt-3">
-                  <button onClick={() => updateOrderStatus(order.id, "confirmed")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-blue-50 text-blue-700"><CheckCircle className="w-4 h-4" /> تأكيد</button>
-                  <button onClick={() => updateOrderStatus(order.id, "shipped")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-green-50 text-green-700"><Truck className="w-4 h-4" /> تم الشحن</button>
-                  <button onClick={() => updateOrderStatus(order.id, "cancelled")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-orange-50 text-orange-700"><XCircle className="w-4 h-4" /> إلغاء</button>
-                  <button onClick={() => deleteOrder(order.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-red-50 text-red-700"><Trash2 className="w-4 h-4" /> حذف</button>
+                  <p className="text-sm text-gray-600">{order.phone}</p>
+                  <p className="text-sm text-gray-500 mb-2">{order.address} - {order.city}</p>
+                  {order.items ? (
+                    <div className="border-t pt-2 mb-3 text-sm">
+                      {(Array.isArray(order.items) ? order.items : []).map((item: any, j: number) => (
+                        <p key={j}>• {item.name} × {item.quantity}</p>
+                      ))}
+                      <p className="font-bold mt-1">الإجمالي: {order.total} ج.م</p>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2 border-t pt-3">
+                    <button type="button" onClick={() => updateOrderStatus(order.id, "confirmed")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-blue-50 text-blue-700">
+                      <CheckCircle className="w-4 h-4" /> تأكيد
+                    </button>
+                    <button type="button" onClick={() => updateOrderStatus(order.id, "shipped")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-green-50 text-green-700">
+                      <Truck className="w-4 h-4" /> تم الشحن
+                    </button>
+                    <button type="button" onClick={() => updateOrderStatus(order.id, "cancelled")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-orange-50 text-orange-700">
+                      <XCircle className="w-4 h-4" /> إلغاء
+                    </button>
+                    <button type="button" onClick={() => deleteOrder(order.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-red-50 text-red-700">
+                      <Trash2 className="w-4 h-4" /> حذف
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
     </div>
