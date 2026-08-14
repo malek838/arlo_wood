@@ -57,6 +57,11 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
+            {user && !user.isAdmin && (
+              <Link href="/my-orders" className="hidden sm:block text-sm hover:text-[#c4a574] transition">
+                طلباتي
+              </Link>
+            )}
             {user?.isAdmin && (
               <Link
                 href="/admin"

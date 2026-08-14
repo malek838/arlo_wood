@@ -316,10 +316,25 @@ export default function AdminPage() {
       {tab === "users" && !loading && (
         <div className="space-y-3">
           {users.length === 0 ? <p className="text-center py-10 bg-white rounded-xl border">لا يوجد مستخدمين</p> : users.map((u) => (
-            <div key={u.id} className="bg-white p-4 rounded-xl border">
-              <p className="font-bold">{u.name}</p>
-              <p className="text-sm text-gray-600">{u.email}</p>
-              {u.phone && <p className="text-sm">هاتف: {u.phone}</p>}
+            <div key={u.id} className="bg-white p-4 rounded-xl border flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-bold">{u.name}</p>
+                <p className="text-sm text-gray-600">{u.email}</p>
+                {u.phone && <p className="text-sm">هاتف: {u.phone}</p>}
+                {u.address && <p className="text-sm text-gray-500">{u.address}{u.city ? ` - ${u.city}` : ""}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm(`حذف حساب ${u.name}؟`)) return;
+                  const { error } = await supabase.from("users").delete().eq("id", u.id);
+                  if (error) alert("خطأ: " + error.message);
+                  else loadData();
+                }}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+              >
+                <Trash2 className="w-4 h-4" /> حذف الحساب
+              </button>
             </div>
           ))}
         </div>
